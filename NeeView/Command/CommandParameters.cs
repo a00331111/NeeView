@@ -90,6 +90,7 @@ namespace NeeView
             new(typeof(ToggleBookmarkCommandParameter)),
             new(typeof(MoveMediaPositionCommandParameter)),
             new(typeof(SetEffectProfileCommandParameter)),
+            new(typeof(StereoGapCommandParameter)),
         ];
 
         static JsonCommandParameterConverter()

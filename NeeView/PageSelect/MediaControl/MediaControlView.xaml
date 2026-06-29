@@ -213,8 +213,48 @@
 
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
 
-                    <local:MoreMenuButton ImageSource="{StaticResource ic_more_24px_b}" Description="{Binding MoreMenuDescription}" 
+                    <local:MoreMenuButton ImageSource="{StaticResource ic_more_24px_b}" Description="{Binding MoreMenuDescription}"
                                       Visibility="{Binding IsMoreMenuEnabled, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+                    <!-- 3D Stereo Mode Toggle -->
+                    <Button Command="{Binding ToggleStereoModeCommand}" ToolTip="3D Stereo Mode (Parallel Eye)">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsStereoMode}" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource Accent}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                        <TextBlock Text="3D" FontWeight="Bold" FontSize="12" VerticalAlignment="Center"/>
+                    </Button>
+
+                    <!-- Stereo Gap Slider (visible only in stereo mode) -->
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsStereoMode}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <TextBlock Text="间距" VerticalAlignment="Center" Margin="4,0" Foreground="{DynamicResource BottomBar.Foreground}"/>
+                        <nwc:SmartSlider x:Name="StereoGapSlider" Height="30" VerticalAlignment="Center" ThumbSize="12"
+                                     Width="80"
+                                     ThumbBorderBrush="{DynamicResource BottomBar.Slider.Thumb}"
+                                     ThumbThickness="0"
+                                     ThumbFill="{DynamicResource BottomBar.Foreground}"
+                                     ThumbFillMouseOver="{DynamicResource BottomBar.Slider.Thumb}"
+                                     TrackDecreaseBrush="{DynamicResource BottomBar.Foreground}"
+                                     TrackIncreaseBrush="{DynamicResource Slider.Background}"
+                                     Minimum="0" Maximum="100"
+                                     Value="{Binding StereoGap}"/>
+                        <TextBlock Text="{Binding StereoGap, StringFormat='{}{0:F0}%'}" VerticalAlignment="Center" Margin="4,0" Foreground="{DynamicResource BottomBar.Foreground}" MinWidth="30"/>
+                    </StackPanel>
 
                     <Button Command="{Binding RepeatCommand}">
                         <Button.Style>

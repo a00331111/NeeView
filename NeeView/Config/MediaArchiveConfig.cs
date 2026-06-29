@@ -23,6 +23,8 @@ namespace NeeView
         [DefaultEquality] private bool _isLibVlcEnabled;
         [DefaultEquality] private DefaultSubtitle _defaultSubtitle = DefaultSubtitle.Default;
         [DefaultEquality] private string? _libVlcPath;
+        [DefaultEquality] private StereoMode _stereoMode = StereoMode.None;
+        [DefaultEquality] private double _stereoGap;
 
 
         /// <summary>
@@ -115,6 +117,27 @@ namespace NeeView
         {
             get { return _defaultSubtitle; }
             set { SetProperty(ref _defaultSubtitle, value); }
+        }
+
+        /// <summary>
+        /// 3D stereo display mode
+        /// </summary>
+        [PropertyMember]
+        public StereoMode StereoMode
+        {
+            get { return _stereoMode; }
+            set { SetProperty(ref _stereoMode, value); }
+        }
+
+        /// <summary>
+        /// Gap between left and right eye views (0-100%)
+        /// </summary>
+        [PropertyMember]
+        [PropertyRange(0.0, 100.0)]
+        public double StereoGap
+        {
+            get { return _stereoGap; }
+            set { SetProperty(ref _stereoGap, AppMath.Round(value)); }
         }
     }
 

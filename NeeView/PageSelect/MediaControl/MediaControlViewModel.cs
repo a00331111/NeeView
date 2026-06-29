@@ -27,6 +27,9 @@ namespace NeeView
             UpdateOperator(_model.LastChangedArgs);
 
             MoreMenuDescription = new MediaPlayerMoreMenuDescription(this);
+
+            // Listen for stereo mode config changes
+            Config.Current.Archive.Media.PropertyChanged += MediaConfig_PropertyChanged;
         }
 
 
@@ -51,6 +54,14 @@ namespace NeeView
         }
 
         public bool IsPlaying => _operator?.IsPlaying ?? false;
+
+        public bool IsStereoMode => Config.Current.Archive.Media.StereoMode != StereoMode.None;
+
+        public double StereoGap
+        {
+            get => Config.Current.Archive.Media.StereoGap;
+            set => Config.Current.Archive.Media.StereoGap = value;
+        }
 
 
         private void AttachOperator(MediaPlayerOperator? op)
@@ -94,6 +105,25 @@ namespace NeeView
         {
             if (Operator is null) return;
             Operator.IsMuted = !Operator.IsMuted;
+        }
+
+        [RelayCommand]
+        private void ToggleStereoMode()
+        {
+            var media = Config.Current.Archive.Media;
+            media.StereoMode = media.StereoMode == StereoMode.None ? StereoMode.SideBySide : StereoMode.None;
+        }
+
+        private void MediaConfig_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(MediaArchiveConfig.StereoMode))
+            {
+                OnPropertyChanged(nameof(IsStereoMode));
+            }
+            if (e.PropertyName == nameof(MediaArchiveConfig.StereoGap))
+            {
+                OnPropertyChanged(nameof(StereoGap));
+            }
         }
 
         private void Model_Changed(object? sender, MediaPlayerChanged e)
