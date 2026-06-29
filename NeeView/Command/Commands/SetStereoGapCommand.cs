@@ -1,4 +1,5 @@
 using NeeView.Properties;
+using System;
 
 namespace NeeView
 {
@@ -15,7 +16,7 @@ namespace NeeView
         {
             var parameter = e.Parameter.Cast<StereoGapCommandParameter>();
             var gap = Config.Current.Archive.Media.StereoGap + parameter.Delta;
-            gap = AppMath.Clamp(gap, 0.0, 100.0);
+            gap = Math.Clamp(gap, 0.0, 100.0);
             return string.Format(TextResources.GetString("SetStereoGapCommand.Message"), gap);
         }
 
@@ -28,7 +29,7 @@ namespace NeeView
         {
             var parameter = e.Parameter.Cast<StereoGapCommandParameter>();
             var gap = Config.Current.Archive.Media.StereoGap + parameter.Delta;
-            Config.Current.Archive.Media.StereoGap = AppMath.Clamp(gap, 0.0, 100.0);
+            Config.Current.Archive.Media.StereoGap = Math.Clamp(gap, 0.0, 100.0);
         }
     }
 }
