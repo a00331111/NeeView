@@ -1,4 +1,4 @@
-﻿#define USE_IMAGEBRUSH
+#define USE_IMAGEBRUSH
 
 using NeeView.PageFrames;
 using System;
@@ -20,9 +20,13 @@ namespace NeeView
         private readonly Rectangle _videoLayer;
         private readonly ImageBrush _imageBlush;
         private readonly Rectangle _imageLayer;
-#else
-        private readonly Image _videoLayer;
-        private readonly Image _imageLayer;
+
+        // Stereo mode elements
+        private readonly ImageBrush _leftBrush;
+        private readonly ImageBrush _rightBrush;
+        private readonly Rectangle _leftLayer;
+        private readonly Rectangle _rightLayer;
+        private readonly StackPanel _stereoPanel;
 #endif
         private readonly AudioCard _audioCard;
         private readonly TextBlock _errorMessageTextBlock;
@@ -31,6 +35,8 @@ namespace NeeView
         private PageFrameElement _element;
         private ViewContentSize _contentSize;
         private bool _imageInitialized;
+        private Rect _currentViewbox;
+        private bool _isStereoMode;
 
         public VlcMediaPlayerCanvas(PageFrameElement element, MediaViewData source, ViewContentSize contentSize, Rect viewbox, VlcMediaPlayer player)
         {
@@ -38,6 +44,7 @@ namespace NeeView
 
             _element = element;
             _contentSize = contentSize;
+            _currentViewbox = viewbox;
 
             _player = player;
             _player.MediaPlayed += Player_MediaPlayed;
@@ -73,6 +80,43 @@ namespace NeeView
                 Fill = _imageBlush,
             };
 
+            // Stereo mode elements
+            var leftViewbox = new Rect(viewbox.X, viewbox.Y, viewbox.Width * 0.5, viewbox.Height);
+            var rightViewbox = new Rect(viewbox.X + viewbox.Width * 0.5, viewbox.Y, viewbox.Width * 0.5, viewbox.Height);
+
+            _leftBrush = new ImageBrush()
+            {
+                ImageSource = _player.SourceProvider.VideoSource,
+                Stretch = Stretch.Fill,
+                Viewbox = leftViewbox,
+            };
+
+            _rightBrush = new ImageBrush()
+            {
+                ImageSource = _player.SourceProvider.VideoSource,
+                Stretch = Stretch.Fill,
+                Viewbox = rightViewbox,
+            };
+
+            _leftLayer = new Rectangle()
+            {
+                Fill = _leftBrush,
+                Visibility = Visibility.Hidden,
+            };
+
+            _rightLayer = new Rectangle()
+            {
+                Fill = _rightBrush,
+                Visibility = Visibility.Hidden,
+            };
+
+            _stereoPanel = new StackPanel()
+            {
+                Orientation = Orientation.Horizontal,
+                Visibility = Visibility.Collapsed,
+            };
+            _stereoPanel.Children.Add(_leftLayer);
+            _stereoPanel.Children.Add(_rightLayer);
 
 #else
             _videoLayer = new Image()
@@ -106,9 +150,6 @@ namespace NeeView
                 AudioInfo = source.MediaSource.AudioInfo,
                 Visibility = Visibility.Collapsed,
                 VerticalAlignment = VerticalAlignment.Center,
-                //HorizontalAlignment = HorizontalAlignment.Center,
-                //MaxWidth = 640.0,
-                //Margin = new Thickness(20.0),
             };
 
             _errorMessageTextBlock = new TextBlock()
@@ -126,6 +167,7 @@ namespace NeeView
             // root grid
             this.Background = Brushes.Black;
             this.Children.Add(_videoLayer);
+            this.Children.Add(_stereoPanel);
             if (source.ImageSource is not null)
             {
                 this.Children.Add(_imageLayer);
@@ -135,8 +177,56 @@ namespace NeeView
 
             UpdateMediaType();
 
+            // Listen for stereo mode config changes
+            Config.Current.Archive.Media.PropertyChanged += MediaConfig_PropertyChanged;
+            _isStereoMode = Config.Current.Archive.Media.StereoMode != StereoMode.None;
+            UpdateStereoMode();
+
             // image scaling mode
             _contentSize.SizeChanged += ContentSize_SizeChanged;
+        }
+
+        private void MediaConfig_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (_disposedValue) return;
+            if (e.PropertyName == nameof(MediaArchiveConfig.StereoMode))
+            {
+                AppDispatcher.BeginInvoke(() =>
+                {
+                    _isStereoMode = Config.Current.Archive.Media.StereoMode != StereoMode.None;
+                    UpdateStereoMode();
+                });
+            }
+            if (e.PropertyName == nameof(MediaArchiveConfig.StereoGap))
+            {
+                AppDispatcher.BeginInvoke(() => UpdateStereoGap());
+            }
+        }
+
+        private void UpdateStereoMode()
+        {
+            if (_isStereoMode)
+            {
+                _videoLayer.Visibility = Visibility.Collapsed;
+                _stereoPanel.Visibility = Visibility.Visible;
+                UpdateStereoGap();
+            }
+            else
+            {
+                _stereoPanel.Visibility = Visibility.Collapsed;
+                if (_player.SourceProvider.VideoSource != null)
+                {
+                    _videoLayer.Visibility = Visibility.Visible;
+                }
+            }
+        }
+
+        private void UpdateStereoGap()
+        {
+            var gap = Config.Current.Archive.Media.StereoGap;
+            var gapPixels = gap * 2.0;
+            _leftLayer.Margin = new Thickness(0, 0, gapPixels * 0.5, 0);
+            _rightLayer.Margin = new Thickness(gapPixels * 0.5, 0, 0, 0);
         }
 
         private void Player_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -186,6 +276,7 @@ namespace NeeView
                     _player.MediaPlayed -= Player_MediaPlayed;
                     _player.MediaFailed -= Player_MediaFailed;
                     _player.PropertyChanged -= Player_PropertyChanged;
+                    Config.Current.Archive.Media.PropertyChanged -= MediaConfig_PropertyChanged;
 #if USE_IMAGEBRUSH
                     _player.SourceProvider.PropertyChanged -= SourceProvider_PropertyChanged;
 #endif
@@ -203,6 +294,8 @@ namespace NeeView
             if (string.IsNullOrEmpty(e.PropertyName) || e.PropertyName == nameof(VlcVideoSourceProvider.VideoSource))
             {
                 _videoBrush.ImageSource = _player.SourceProvider.VideoSource;
+                _leftBrush.ImageSource = _player.SourceProvider.VideoSource;
+                _rightBrush.ImageSource = _player.SourceProvider.VideoSource;
 
                 if (!_imageInitialized)
                 {
@@ -228,6 +321,7 @@ namespace NeeView
             if (_errorMessageTextBlock is null) return;
 
             _videoLayer.Visibility = Visibility.Collapsed;
+            _stereoPanel.Visibility = Visibility.Collapsed;
             _imageLayer.Visibility = Visibility.Collapsed;
 
             _errorMessageTextBlock.Text = e.ErrorException.Message;
@@ -236,16 +330,32 @@ namespace NeeView
 
         public override void SetViewbox(Rect viewbox)
         {
+            _currentViewbox = viewbox;
 #if USE_IMAGEBRUSH
             _videoBrush.Viewbox = viewbox;
             _imageBlush.Viewbox = viewbox;
+
+            // Update stereo viewboxes
+            _leftBrush.Viewbox = new Rect(viewbox.X, viewbox.Y, viewbox.Width * 0.5, viewbox.Height);
+            _rightBrush.Viewbox = new Rect(viewbox.X + viewbox.Width * 0.5, viewbox.Y, viewbox.Width * 0.5, viewbox.Height);
 #endif
             UpdateBitmapScalingMode();
         }
 
         private void ShowVideo()
         {
-            _videoLayer.Visibility = Visibility.Visible;
+            if (_isStereoMode)
+            {
+                _videoLayer.Visibility = Visibility.Collapsed;
+                _stereoPanel.Visibility = Visibility.Visible;
+                _leftLayer.Visibility = Visibility.Visible;
+                _rightLayer.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                _videoLayer.Visibility = Visibility.Visible;
+                _stereoPanel.Visibility = Visibility.Collapsed;
+            }
             _imageLayer.Visibility = Visibility.Collapsed;
         }
 
@@ -254,9 +364,15 @@ namespace NeeView
             var image = _player.SourceProvider.VideoSource;
             if (image is null) return;
 
+#if USE_IMAGEBRUSH
             var imageSize = _videoBrush.ImageSource is BitmapSource bitmapSource ? new Size(bitmapSource.PixelWidth, bitmapSource.PixelHeight) : new Size(image.Width, image.Height);
+#else
+            var imageSize = new Size(image.Width, image.Height);
+#endif
 
             ViewContentTools.SetBitmapScalingMode(_videoLayer, imageSize, _contentSize, _scalingMode);
+            ViewContentTools.SetBitmapScalingMode(_leftLayer, imageSize, _contentSize, _scalingMode);
+            ViewContentTools.SetBitmapScalingMode(_rightLayer, imageSize, _contentSize, _scalingMode);
         }
     }
 }

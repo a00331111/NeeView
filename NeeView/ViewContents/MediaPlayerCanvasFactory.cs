@@ -8,18 +8,6 @@ namespace NeeView
     {
         public static MediaPlayerCanvas Create(PageFrameElement element, MediaViewData source, ViewContentSize contentSize, Rect viewbox, IMediaPlayer player)
         {
-            // Use stereo canvas when stereo mode is enabled (only for VLC and Default players)
-            if (Config.Current.Archive.Media.StereoMode == StereoMode.SideBySide)
-            {
-                switch (player)
-                {
-                    case DefaultMediaPlayer mediaPlayer:
-                        return new DefaultMediaPlayerCanvas(element, source, contentSize, viewbox, mediaPlayer);
-                    case VlcMediaPlayer vlcMediaPlayer:
-                        return new StereoMediaPlayerCanvas(element, source, contentSize, viewbox, vlcMediaPlayer);
-                }
-            }
-
             switch (player)
             {
                 case DefaultMediaPlayer mediaPlayer:
