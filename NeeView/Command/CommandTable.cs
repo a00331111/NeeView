@@ -262,6 +262,7 @@ namespace NeeView
                 new NextMediaPositionCommand(),
                 new ToggleStereoModeCommand(),
                 new SetStereoGapCommand(),
+                new Open3DPlayerCommand(),
 
                 new ToggleBookOrderCommand(),
                 new SetBookOrderByFileNameACommand(),

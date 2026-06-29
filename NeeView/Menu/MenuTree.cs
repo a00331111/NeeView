@@ -83,6 +83,7 @@ namespace NeeView
                     new TreeListNode<MenuElement>(new SeparatorMenuElement()),
                     new TreeListNode<MenuElement>(new CommandMenuElement() { CommandName = "OpenExplorer" }),
                     new TreeListNode<MenuElement>(new CommandMenuElement() { CommandName = "OpenExternalAppAs" }),
+                    new TreeListNode<MenuElement>(new CommandMenuElement() { CommandName = "Open3DPlayer" }),
                     new TreeListNode<MenuElement>(new SeparatorMenuElement()),
                     new TreeListNode<MenuElement>(new CommandMenuElement() { CommandName = "CutFile" }),
                     new TreeListNode<MenuElement>(new CommandMenuElement() { CommandName = "CopyFile" }),
